@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: Mirra's Simple Party Colors
+## Notes: Shows class colors on the original Blizzard party frames (not raid frames).
+## Author: Kekshaus
+## Version: 1.4.2
+## IconTexture: Interface\AddOns\MirrasSimplePartyColors\Logo
+## SavedVariables: MSPC_DB
+
+MirrasSimplePartyColors.lua
