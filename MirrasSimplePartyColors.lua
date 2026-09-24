@@ -1,13 +1,6 @@
--- Mirra's Simple Party Colors
--- Colors the health bars of the original party frames (PartyFrame) in class colors.
--- Raid-style party frames (CompactPartyFrame) are intentionally NOT touched.
-
 local ADDON = ...
 local PREFIX = "|cff33ccffMSPC|r: "
 
----------------------------------------------------------------------------
--- Strings
----------------------------------------------------------------------------
 local L = {
     SUBTITLE      = "Class colors for the original party frames.",
     ENABLED       = "Class-colored health bars",
@@ -29,12 +22,10 @@ local L = {
     CHAT_FLAT     = "Flat texture",
 }
 
-
-
 local defaults = {
-    enabled   = true,  -- class-colored health bars
-    colorName = false, -- class-colored names too
-    flat      = false, -- flat texture instead of desaturated Blizzard texture
+    enabled   = true,
+    colorName = false,
+    flat      = false,
 }
 
 local FLAT_TEXTURE = "Interface\\TargetingFrame\\UI-StatusBar"
@@ -43,9 +34,6 @@ local db
 local hooked = {}
 local originalNameColor = {}
 
----------------------------------------------------------------------------
--- Find frames (modern PartyFrame + fallback for old PartyMemberFrameN)
----------------------------------------------------------------------------
 local function GetMemberFrames()
     local frames = {}
     if PartyFrame then
@@ -86,9 +74,6 @@ local function GetUnit(frame)
     return frame.unit or (frame.GetAttribute and frame:GetAttribute("unit"))
 end
 
----------------------------------------------------------------------------
--- Apply colors
----------------------------------------------------------------------------
 local function GetClassColor(unit)
     if not unit or not UnitExists(unit) or not UnitIsPlayer(unit) then return end
     local _, class = UnitClass(unit)
@@ -96,12 +81,6 @@ local function GetClassColor(unit)
     local c = (CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class]) or RAID_CLASS_COLORS[class]
     if c then return c.r, c.g, c.b end
 end
-
--- IMPORTANT (Midnight/Forever "secret values"):
--- This addon never calls Blizzard frame functions and never writes fields
--- into Blizzard tables. Otherwise Blizzard's own code becomes "tainted" and
--- fails on secret values (e.g. the health bar's maxValue).
--- Only widget methods (color/texture) are used; state lives in our own tables.
 
 local barState = setmetatable({}, { __mode = "k" })
 
@@ -148,7 +127,6 @@ local function ApplyToFrame(frame)
         local st = GetState(bar)
         local offline = db.enabled and unit and UnitExists(unit) and UnitIsConnected and not UnitIsConnected(unit)
         if offline then
-            -- Offline: show gray like Blizzard does
             local tex = bar:GetStatusBarTexture()
             if tex and tex.SetDesaturated then tex:SetDesaturated(true) end
             bar:SetStatusBarColor(0.5, 0.5, 0.5)
@@ -190,10 +168,9 @@ local function HookFrame(frame)
     if hooked[frame] then return end
     hooked[frame] = true
 
-    -- Blizzard resets the bar art in these methods -> recolor afterwards
     local function onArtReset()
         local bar = GetHealthBar(frame)
-        if bar and barState[bar] then barState[bar].flat = nil end -- Blizzard set its own texture
+        if bar and barState[bar] then barState[bar].flat = nil end
         ApplyToFrame(frame)
     end
     for _, method in ipairs({ "ToPlayerArt", "ToVehicleArt" }) do
@@ -217,11 +194,8 @@ local function UpdateAll()
     end
 end
 
-local CreateOptionsPanel -- defined below
+local CreateOptionsPanel
 
----------------------------------------------------------------------------
--- Events & global hooks
----------------------------------------------------------------------------
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -259,14 +233,9 @@ f:SetScript("OnEvent", function(self, event, arg1)
         return
     end
     if not db then return end
-    -- defer one frame so Blizzard updates first
     C_Timer.After(0, UpdateAll)
 end)
 
-
----------------------------------------------------------------------------
--- Settings panel (Options -> AddOns -> Mirra's Simple Party Colors)
----------------------------------------------------------------------------
 local PANEL_NAME = "Mirra's Simple Party Colors"
 local settingsCategory
 local panel
@@ -343,7 +312,6 @@ CreateOptionsPanel = function()
     cbName.dependsOnEnabled = true
     cbFlat.dependsOnEnabled = true
 
-    -- Live preview: dummy party members drawn with our own widgets
     local previewTitle = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     previewTitle:SetPoint("TOPLEFT", cbFlat, "BOTTOMLEFT", 2, -34)
     previewTitle:SetText(L.PREVIEW)
@@ -428,7 +396,6 @@ CreateOptionsPanel = function()
         panel:Refresh()
     end)
 
-    -- Blizzard's own party health texture (read-only lookup, cached)
     local blizzBarAtlas
     local function GetBlizzardBarAtlas()
         if blizzBarAtlas then return blizzBarAtlas end
@@ -462,7 +429,7 @@ CreateOptionsPanel = function()
             if db.enabled and db.flat then
                 hp:SetStatusBarTexture(FLAT_TEXTURE)
             elseif atlas then
-                hp:SetStatusBarTexture(FLAT_TEXTURE) -- ensure a texture object exists
+                hp:SetStatusBarTexture(FLAT_TEXTURE)
                 hp:GetStatusBarTexture():SetAtlas(atlas)
             else
                 hp:SetStatusBarTexture("Interface\\RaidFrame\\Raid-Bar-Hp-Fill")
@@ -475,7 +442,7 @@ CreateOptionsPanel = function()
             else
                 if tex and tex.SetDesaturated then tex:SetDesaturated(false) end
                 if atlas and not db.flat then
-                    hp:SetStatusBarColor(1, 1, 1) -- Blizzard atlas is already green
+                    hp:SetStatusBarColor(1, 1, 1)
                 else
                     hp:SetStatusBarColor(0, 1, 0)
                 end
@@ -489,7 +456,6 @@ CreateOptionsPanel = function()
         end
     end
 
-    -- Buttons
     local resetBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     resetBtn:SetSize(180, 24)
     resetBtn:SetPoint("TOPLEFT", dummies[4], "BOTTOMLEFT", 0, -20)
@@ -531,9 +497,6 @@ CreateOptionsPanel = function()
     end
 end
 
----------------------------------------------------------------------------
--- Slash commands: /mspc opens the settings
----------------------------------------------------------------------------
 local function OnOff(v) return v and ("|cff00ff00" .. L.ON .. "|r") or ("|cffff0000" .. L.OFF .. "|r") end
 
 SLASH_MSPC1 = "/mspc"
